@@ -7,6 +7,7 @@ use craft\base\Plugin as BasePlugin;
 use craft\events\ExceptionEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\TemplateEvent;
+use craft\helpers\App;
 use craft\web\ErrorHandler;
 use craft\web\UrlManager;
 use craft\web\View;
@@ -47,7 +48,7 @@ class Plugin extends BasePlugin
                     Rollbar::init(
                         [
                             'access_token' => $this->settings->getAccessToken(),
-                            'environment' => CRAFT_ENVIRONMENT,
+                            'environment' => App::env('CRAFT_ENVIRONMENT'),
                         ]
                     );
                     Rollbar::error($event->exception);
@@ -74,7 +75,7 @@ class Plugin extends BasePlugin
                         'accessToken' => $this->settings->postClientItemAccessToken,
                         'captureUncaught' => true,
                         'payload' => [
-                            'environment' => CRAFT_ENVIRONMENT,
+                            'environment' => App::env('CRAFT_ENVIRONMENT'),
                         ],
                     ]);
                     $rollbarJs = $rollbarJsHelper->configJsTag() . $rollbarJsHelper->jsSnippet();

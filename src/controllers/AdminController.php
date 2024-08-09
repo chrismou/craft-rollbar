@@ -4,6 +4,7 @@
 namespace chrismou\rollbar\controllers;
 
 
+use craft\helpers\App;
 use craft\web\Controller;
 use chrismou\rollbar\Plugin;
 use Rollbar\Rollbar;
@@ -19,7 +20,7 @@ class AdminController extends Controller
             Rollbar::init(
                 [
                     'access_token' => $accessToken,
-                    'environment' => CRAFT_ENVIRONMENT,
+                    'environment' => App::env('CRAFT_ENVIRONMENT'),
                 ]
             );
             Rollbar::info('test message from craft-rollbar');
