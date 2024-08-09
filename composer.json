@@ -1,0 +1,49 @@
+{
+    "name": "chrismou/craft-rollbar",
+    "description": "Rollbar integration for CraftCMS",
+    "type": "craft-plugin",
+    "keywords": [
+        "craft",
+        "cms",
+        "craftcms",
+        "craft-plugin",
+        "rollbar"
+    ],
+    "support": {
+        "docs": "https://github.com/chrismou/craft-rollbar/blob/master/README.md",
+        "issues": "https://github.com/chrismou/craft-rollbar/issues",
+        "changelog": "https://github.com/chrismou/craft-rollbar/blob/master/CHANGELOG.md"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "chrismou",
+            "homepage": "https://mou.me"
+        },
+        {
+            "name": "newism",
+            "homepage": "https://newis.com.au"
+        }
+    ],
+    "require": {
+        "craftcms/cms": "^3.5.0",
+        "rollbar/rollbar": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+          "chrismou\\rollbar\\": "src/"
+        }
+    },
+    "extra": {
+        "name": "Rollbar",
+        "handle": "chrismou-rollbar",
+        "hasCpSettings": true,
+        "hasCpSection": false
+    },
+    "config": {
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true,
+            "craftcms/plugin-installer": true
+        }
+    }
+}
