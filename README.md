@@ -11,7 +11,7 @@ This plugin provides [Rollbar](https://rollbar.com) support for [Craft CMS](http
 
 ## Requirements
 
-This plugin requires Craft CMS 3.1 or later
+This plugin requires Craft CMS 4 or later. For Craft 3 support, please use the 3.x branch.
 
 ## Installation
 
