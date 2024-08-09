@@ -8,12 +8,12 @@ use craft\base\Model;
 
 class Settings extends Model
 {
-    public $accessToken;
-    public $enableJs;
-    public $postClientItemAccessToken;
-    public $exceptionIgnoreList;
+    public string $accessToken = '';
+    public bool $enableJs = false;
+    public string $postClientItemAccessToken = '';
+    public string $exceptionIgnoreList = '';
 
-    public $pluginEnabled = true;
+    public bool $pluginEnabled = true;
 
     public function rules(): array
     {

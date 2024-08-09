@@ -34,7 +34,7 @@ class Plugin extends BasePlugin
             __METHOD__
         );
 
-        if ($this->settings->accessToken) {
+        if ($this->settings->getPluginEnabled() && $this->settings->getAccessToken()) {
             Event::on(
                 ErrorHandler::class,
                 ErrorHandler::EVENT_BEFORE_HANDLE_EXCEPTION,
