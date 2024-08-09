@@ -60,4 +60,4 @@ Released under the MIT License. See LICENSE.
 ----
 
 This plugin is maintained by [Chris Chrisostomou](https://mou.me). With thanks to the original developer, [Newism](https://newism.com.au).
-```
+
