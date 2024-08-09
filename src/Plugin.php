@@ -7,7 +7,6 @@ use craft\base\Plugin as BasePlugin;
 use craft\events\ExceptionEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\TemplateEvent;
-use craft\helpers\App;
 use craft\web\ErrorHandler;
 use craft\web\UrlManager;
 use craft\web\View;
