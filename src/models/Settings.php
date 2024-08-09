@@ -13,9 +13,12 @@ class Settings extends Model
     public $postClientItemAccessToken;
     public $exceptionIgnoreList;
 
+    public $pluginEnabled = true;
+
     public function rules(): array
     {
         return [
+            ['pluginEnabled', 'boolean'],
             ['accessToken', 'string'],
             ['accessToken', 'required'],
             ['postClientItemAccessToken', 'string'],
@@ -29,9 +32,14 @@ class Settings extends Model
         return [
             'parser' => [
                 'class' => EnvAttributeParserBehavior::class,
-                'attributes' => ['accessToken', 'postClientItemAccessToken', 'exceptionIgnoreList'],
+                'attributes' => ['pluginEnabled', 'accessToken', 'postClientItemAccessToken', 'exceptionIgnoreList'],
             ],
         ];
+    }
+
+    public function getPluginEnabled(): string
+    {
+        return App::parseEnv($this->pluginEnabled);
     }
 
     public function getAccessToken(): string

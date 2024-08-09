@@ -6,6 +6,17 @@
 
 {% do view.registerAssetBundle('chrismou\\rollbar\\assetbundles\\Rollbar\\RollbarAsset') %}
 
+{{ forms.booleanMenuField({
+    label: 'Enable the Rollbar plugin'|t('chrismou-rollbar'),
+    instructions: 'If disabled, the plugin will no longer send errors to Rollbar.',
+    id: 'pluginEnabled',
+    name: 'pluginEnabled',
+    yesLabel: 'Enabled'|t('app'),
+    noLabel: 'Disabled'|t('app'),
+    includeEnvVars: true,
+    value: settings['pluginEnabled'],
+}) }}
+
 {{ forms.autoSuggestField({
     label: 'Access Token'|t('chrismou-rollbar'),
     instructions: 'Your project\'s <code>post_server_item</code> access token, which you can find in the Rollbar.com interface.',
