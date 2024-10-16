@@ -36,7 +36,7 @@
         }
     },
     "extra": {
-        "name": "Rollbar",
+        "name": "Rollbar for Craft CMS",
         "handle": "chrismou-rollbar",
         "hasCpSettings": true,
         "hasCpSection": false
