@@ -72,7 +72,7 @@ class Plugin extends BasePlugin
                 function (TemplateEvent $event) {
                     $view = Craft::$app->getView();
                     $rollbarJsHelper = new RollbarJsHelper([
-                        'accessToken' => $this->settings->postClientItemAccessToken,
+                        'accessToken' => $this->settings->getPostClientItemAccessToken(),
                         'captureUncaught' => true,
                         'payload' => [
                             'environment' => App::env('CRAFT_ENVIRONMENT'),
