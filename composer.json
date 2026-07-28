@@ -26,8 +26,9 @@
         }
     ],
     "require": {
-        "php": ">=8.2 <9.0",
-        "craftcms/cms": "^5.0.0-alpha.1",
+        "php": "^8.5",
+        "craftcms/cms": "^6.0.0-alpha.1",
+        "craftcms/yii2-adapter": "^6.0.0-alpha.1",
         "rollbar/rollbar": "^4.0"
     },
     "autoload": {
