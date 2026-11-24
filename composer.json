@@ -27,25 +27,31 @@
     ],
     "require": {
         "php": "^8.5",
-        "craftcms/cms": "^6.0.0-alpha.1",
-        "craftcms/yii2-adapter": "^6.0.0-alpha.1",
-        "rollbar/rollbar": "^4.0"
+        "craftcms/cms": "^6.0.0-beta.1",
+        "rollbar/rollbar-laravel": "^8.1"
     },
     "autoload": {
         "psr-4": {
-          "chrismou\\rollbar\\": "src/"
+            "Chrismou\\Rollbar\\": "src/"
         }
     },
     "extra": {
         "name": "Rollbar for Craft CMS",
         "handle": "chrismou-rollbar",
-        "hasCpSettings": true,
-        "hasCpSection": false
+        "class": "Chrismou\\Rollbar\\Plugin",
+        "laravel": {
+            "providers": [
+                "Chrismou\\Rollbar\\EarlyReportingServiceProvider"
+            ]
+        }
     },
     "config": {
         "allow-plugins": {
+            "craftcms/plugin-installer": true,
             "yiisoft/yii2-composer": true,
-            "craftcms/plugin-installer": true
+            "php-http/discovery": true
         }
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
