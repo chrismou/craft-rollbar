@@ -4,56 +4,71 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A Craft CMS plugin (`chrismou/craft-rollbar`) that reports PHP exceptions - and optionally JS exceptions - to Rollbar. It is a distributable Composer package, not an application: there is no test suite, no build step, no linter config, and no CI. The only local command that does anything is `composer install` / `composer validate`.
+A Craft CMS plugin (`chrismou/craft-rollbar`) that reports PHP exceptions and error logs - and optionally JS exceptions - to Rollbar. It is a distributable Composer package, not an application: there is no test suite, no build step, no linter config, and no CI. The only local command that does anything is `composer install` / `composer validate`.
 
-Because the package has no runnable entry point of its own, changes are verified inside a real Craft install. Add a path repository to a Craft project's `composer.json` pointing at this directory, `composer require chrismou/craft-rollbar:@dev`, install the plugin in the CP, then use the **Send test message to Rollbar** button on the settings screen (`settings/plugins/chrismou-rollbar`) to exercise the outbound path.
+Because the package has no runnable entry point of its own, changes are verified inside a real Craft install. Add a path repository to a Craft project's `composer.json` pointing at this directory, `composer require chrismou/craft-rollbar:@dev`, run `php artisan craft:plugin:install chrismou-rollbar`, then use the **Send test message to Rollbar** link on the settings screen (`settings/plugins/chrismou-rollbar`) to exercise the outbound path. The Craft project's own `vendor/bin/pint` can be pointed at this directory to check code style.
 
 ## Branch strategy
 
 One long-lived branch per supported Craft major, each pinning its own dependency floor:
 
-| Branch | craftcms/cms                   | craftcms/yii2-adapter | rollbar/rollbar | php            |
-| ------ | ------------------------------ | --------------------- | --------------- | -------------- |
-| `3.x`  | `^3.5.0`                       | -                     | `^2.0`          | -              |
-| `4.x`  | `^4.0.0-alpha.1`               | -                     | `^3.0`          | `>=8.0.2 <9.0` |
-| `5.x`  | `^5.0.0-alpha.1`               | -                     | `^4.0`          | `>=8.2 <9.0`   |
-| `main` | mirrors `5.x` until Craft 6 GA | -                     | `^4.0`          | `>=8.2 <9.0`   |
-| `6.x`  | `^6.0.0-alpha.1`               | `^6.0.0-alpha.1`      | `^4.0`          | `^8.5`         |
+| Branch | craftcms/cms                   | Rollbar package                | php            |
+| ------ | ------------------------------ | ------------------------------ | -------------- |
+| `3.x`  | `^3.5.0`                       | `rollbar/rollbar ^2.0`         | -              |
+| `4.x`  | `^4.0.0-alpha.1`               | `rollbar/rollbar ^3.0`         | `>=8.0.2 <9.0` |
+| `5.x`  | `^5.0.0-alpha.1`               | `rollbar/rollbar ^4.0`         | `>=8.2 <9.0`   |
+| `main` | mirrors `5.x` until Craft 6 GA | `rollbar/rollbar ^4.0`         | `>=8.2 <9.0`   |
+| `6.x`  | `^6.0.0-beta.1`                | `rollbar/rollbar-laravel ^8.1` | `^8.5`         |
 
-`6.x` targets Craft 6 (untagged, experimental) via the official `craftcms/yii2-adapter` compatibility layer. `main` mirrors `5.x` (current stable) until Craft 6 GA, at which point `main` will switch to merging from `6.x`. Fixes are made on the oldest affected branch and merged forward: `3.x` → `4.x` → `5.x` → `6.x`. Any fix landing on `5.x` is also merged to `main`. Source is otherwise near-identical across branches; the deltas are in `composer.json` and Craft API signature changes.
+`6.x` is a native Craft 6 (Laravel) plugin and shares no source with the Yii-based branches, so fixes on `3.x`-`5.x` are **not** merged forward into `6.x` - port them by hand if they still apply. `3.x` → `4.x` → `5.x` still merge forward as before, and any fix landing on `5.x` is also merged to `main`. `main` mirrors `5.x` (current stable) until Craft 6 GA, at which point it switches to following `6.x`. `6.x` stays untagged while Craft 6 is in beta.
 
-## Architecture
+`6.x-compatibility` preserves the earlier adapter-based Craft 6 build (`craftcms/yii2-adapter` + `rollbar/rollbar ^4.0`) that `6.x` held before the native rewrite. It is kept for reference only.
 
-Everything is wired in `Plugin::init()` (`src/Plugin.php`) as Yii event listeners - there are no services, no migrations, and no database tables.
+## Architecture (6.x)
 
-- **PHP reporting** - `ErrorHandler::EVENT_BEFORE_HANDLE_EXCEPTION`. Registered only when `pluginEnabled` and `accessToken` both resolve truthy at boot, so toggling the plugin off costs nothing at runtime. `Rollbar::init()` is called lazily _inside_ the handler, not at boot; environment is always `App::env('CRAFT_ENVIRONMENT')`.
-- **Ignore list** - `Settings::getExceptionsToIgnore()` yields lowercased, trimmed class names from a comma-separated string. The comparison in the handler lowercases `get_class($event->exception)`, so both sides must stay case-normalised.
-- **JS reporting** - `View::EVENT_BEFORE_RENDER_TEMPLATE`, gated on `enableJs` + `postClientItemAccessToken`. Injects `RollbarJsHelper` output into `View::POS_HEAD`. On Craft 5 and earlier this fires for CP templates too. On Craft 6, the CP is rebuilt on Vue/Inertia and is expected to no longer render through the legacy Twig View pipeline, so the snippet is expected to reach front-end Twig templates only (unconfirmed pending test install).
-- **Test route** - `UrlManager::EVENT_REGISTER_CP_URL_RULES` maps `settings/plugins/chrismou-rollbar/test` to `AdminController::actionTest()`, which requires the `admin` permission and sends an info-level message.
+The plugin is a thin Craft layer over `rollbar/rollbar-laravel`. There are no migrations and no database tables.
+
+- **`src/EarlyReportingServiceProvider.php`** - a plain Laravel provider, auto-discovered via `extra.laravel.providers`, so it runs before Craft touches the database and regardless of whether the plugin is installed. It binds `RollbarChannel` as a singleton and, when `ROLLBAR_TOKEN` is set, registers the channel straight away. This is what gets a database outage reported.
+- **`src/Plugin.php`** - the plugin class, which in Craft 6 is itself a Laravel service provider (and must NOT be listed under `extra.laravel.providers` - only the early provider is). `register()` re-registers the channel with the plugin's settings (or calls `deactivate()` when the plugin is disabled), `boot()` adds the Craft context, `settingsUi()` builds the settings screen from Craft's `Ui` nodes - there are no Twig templates. The callout at the top of the settings screen explains the two token options in plain language.
+- **`src/Logging/RollbarChannel.php`** - all of the Rollbar wiring, shared by both providers:
+  - `register()` writes `logging.channels.rollbar` (values the project defined there itself are captured on the first call and always win), force-registers `RollbarServiceProvider` because rollbar-laravel's auto-discovered provider bails out when it runs before a token exists, points `logging.default` at a `chrismou-rollbar` stack channel wrapping the previous default plus `rollbar`, and sets the handler's level. It is safe to call twice.
+  - `deactivate()` restores the original default log channel.
+  - `applyCraftContext()` adds `person_fn`, `custom_data_method` and (when an ignore list is set) `check_ignore` to the logger, skipping any the project configured itself.
+  - `isActive()` is true when a `RollbarLogger` is bound; `hasEnvToken()` is true when `ROLLBAR_TOKEN` is set.
+- **`src/Listeners/InjectBrowserJs.php`** - listens for `PageTemplateRendering` and pushes the `RollbarJsHelper` snippet onto the `HtmlStack` head, for `TemplateMode::Site` only. The control panel (Inertia) is not instrumented.
+- **`src/Listeners/RecommendEnvToken.php`** - listens for `CpAlertsResolving` and adds an alert for admins whose token is in the plugin's settings rather than `ROLLBAR_TOKEN`. Dismissal is permanent and per user, stored with Craft's `Users::shunMessageForUser()` (no expiry) by `DismissTokenRecommendationController`. Craft's alert renderer drops non-ASCII link text, so the dismiss link is a word, not an icon.
+- **`src/Http/Controllers/TestMessageController.php`** + **`routes/cp.php`** - the admin-only test message route. It reports straight to the `RollbarLogger` so the log level doesn't filter it, and flashes whether Rollbar accepted it.
+
+`rollbar-laravel` reads `ROLLBAR_TOKEN` and `ROLLBAR_LEVEL` from the env itself and prefers them over config, so both override the plugin's settings; `ROLLBAR_LEVEL=none` switches everything off.
+
+Reporting rides on Laravel's exception handler and log channels, so anything Laravel doesn't report (HTTP exceptions, validation failures) never reaches Rollbar, and log messages at or above `logLevel` do.
 
 ### The plugin handle is load-bearing
 
-`chrismou-rollbar` (set in `composer.json` under `extra.handle`) is hardcoded across the codebase and must match exactly: the translation category, the template namespace (`chrismou-rollbar/settings`), the CP URL rules and redirect, the session flash key, and the project-level override file `config/chrismou-rollbar.php`. Renaming the handle means updating all of them.
+`chrismou-rollbar` (set in `composer.json` under `extra.handle`) is hardcoded across the codebase and must match exactly: the translation category, the CP route and redirect in `routes/cp.php` / `TestMessageController`, the `HtmlStack` key, the stack channel name, the `vendor:publish` tag, and the override file `config/craft/chrismou-rollbar.php` (published from `config/chrismou-rollbar.php`). Renaming the handle means updating all of them.
 
-The PSR-4 root is `chrismou\rollbar\` → `src/`, which gives Craft the alias `@chrismou/rollbar` used by `RollbarAsset::$sourcePath`.
+The PSR-4 root is `Chrismou\Rollbar\` → `src/`. Craft finds `resources/icon.svg`, `routes/`, `lang/` and `config/` by convention relative to the package root.
 
 ### Settings and env vars
 
-Every user-facing setting is env-parseable. `Settings::behaviors()` registers `EnvAttributeParserBehavior` over `pluginEnabled`, `accessToken`, `postClientItemAccessToken`, and `exceptionIgnoreList`, and the Twig fields use `suggestEnvVars` / `includeEnvVars` so admins type `$ROLLBAR_ACCESS_TOKEN` rather than a literal.
+`pluginEnabled`, `accessToken`, `postClientItemAccessToken` and `exceptionIgnoreList` are env-parseable: the stored value is either a literal or a `$ENV_VAR` reference.
 
-**Always read these through the getters** (`getAccessToken()`, `getPostClientItemAccessToken()`, `getPluginEnabled()`, `getExceptionsToIgnore()`) - they run `App::parseEnv()`. Reading the raw property gives you the literal `$VAR_NAME` string. `src/Plugin.php:75` currently reads `$this->settings->postClientItemAccessToken` directly while the guard on line 67 uses the getter, so a JS token set via env var is passed to `RollbarJsHelper` unparsed.
+**Always read these through the getters** (`isPluginEnabled()`, `getAccessToken()`, `getPostClientItemAccessToken()`, `getExceptionsToIgnore()`) - they run `Env::parse()`. Reading the raw property gives you the literal `$VAR_NAME` string.
+
+`pluginEnabled` is a `BooleanMenu`, whose options are `'1'`, `'0'` or an env var reference, so `Settings::validationData()` normalises it to that form for both the settings screen and the stored project config.
+
+The setting names are unchanged from the Craft 5 plugin so stored settings survive the upgrade - don't rename them.
 
 ### Adding a setting
 
-Four coordinated edits:
-
-1. `src/models/Settings.php` - typed public property, entry in `rules()`, entry in the `behaviors()` attribute list if it should support env vars, and a `App::parseEnv()` getter.
-2. `src/config.php` - the template admins copy to `config/chrismou-rollbar.php`, with a comment describing it.
-3. `src/templates/settings.twig` - the CP field, passing `warning: macros.configWarning('<name>', 'chrismou-rollbar')`.
-4. `src/Plugin.php` - consume it via the getter.
-
-`macros.configWarning` reads `config/chrismou-rollbar.php` at render time and shows an "overridden by config file" notice, so the setting name must be spelled identically in all four places for that warning to work.
+1. `src/Settings.php` - typed public property, a rule in `getRules()`, and an `Env::parse()` getter if it should support env vars.
+2. `config/chrismou-rollbar.php` - a commented-out example with a description.
+3. `src/Plugin.php` - a field in `settingsUi()`.
+4. Consume it via the getter (usually in `RollbarChannel`).
 
 ## Known quirks
 
 - `composer.lock` is gitignored, so dependency resolution is unpinned for consumers by design.
+- Plugin settings load from the database, so errors thrown before Craft loads its plugins are only reported when the token is in `ROLLBAR_TOKEN`.
+- After changing `composer.json` (for example `extra.laravel.providers`), a Craft project using this package through a path repository only picks the change up if the repository has `"options": {"reference": "config"}`, followed by `composer update chrismou/craft-rollbar`.
+- `rollbar-laravel`'s Monolog handler attaches the session contents to the reported person; Rollbar's default scrub fields apply.
