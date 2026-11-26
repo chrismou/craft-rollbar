@@ -5,6 +5,7 @@ namespace chrismou\rollbar\controllers;
 
 
 use craft\helpers\App;
+use craft\helpers\UrlHelper;
 use craft\web\Controller;
 use chrismou\rollbar\Plugin;
 use Rollbar\Rollbar;
@@ -26,6 +27,6 @@ class AdminController extends Controller
             Rollbar::info('test message from craft-rollbar');
         }
         \Craft::$app->session->setFlash('chrismou-rollbar-setting', 'Sent test message.');
-        return $this->redirect('/admin/settings/plugins/chrismou-rollbar');
+        return $this->redirect(UrlHelper::cpUrl('settings/plugins/chrismou-rollbar'));
     }
 }
